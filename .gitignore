@@ -44,3 +44,5 @@ public/uploads/*
 skills-lock.json
 prisma/dev.db
 dev.db
+/backups/*
+!/backups/.gitkeep

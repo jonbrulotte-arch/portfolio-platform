@@ -11,6 +11,7 @@ const nav = [
   { label: "Categories", href: "/admin/categories", icon: "⊹" },
   { label: "Tags", href: "/admin/tags", icon: "#" },
   { label: "Media", href: "/admin/media", icon: "⊡" },
+  { label: "Backup", href: "/admin/backup", icon: "↓" },
   { label: "Settings", href: "/admin/settings", icon: "⚙" },
 ];
 
