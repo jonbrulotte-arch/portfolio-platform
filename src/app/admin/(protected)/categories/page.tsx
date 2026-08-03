@@ -18,7 +18,7 @@ export default function AdminCategoriesPage() {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    fetch("/api/categories").then((r) => r.json()).then(setCats);
+    fetch("/api/categories", { cache: "no-store" }).then((r) => r.json()).then(setCats);
   }, []);
 
   async function save() {

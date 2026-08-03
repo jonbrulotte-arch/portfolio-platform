@@ -49,7 +49,7 @@ export default function AdminSettingsPage() {
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    fetch("/api/settings").then((r) => r.json()).then(setSettings);
+    fetch("/api/settings", { cache: "no-store" }).then((r) => r.json()).then(setSettings);
   }, []);
 
   async function save() {

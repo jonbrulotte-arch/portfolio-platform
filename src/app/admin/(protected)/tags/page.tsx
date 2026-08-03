@@ -9,7 +9,7 @@ export default function AdminTagsPage() {
   const [msg, setMsg] = useState("");
 
   useEffect(() => {
-    fetch("/api/tags").then((r) => r.json()).then(setTags);
+    fetch("/api/tags", { cache: "no-store" }).then((r) => r.json()).then(setTags);
   }, []);
 
   async function add() {

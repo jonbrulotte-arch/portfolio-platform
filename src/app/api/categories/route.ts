@@ -4,6 +4,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const cats = await prisma.category.findMany({ orderBy: { sortOrder: "asc" } });
   return NextResponse.json(cats);

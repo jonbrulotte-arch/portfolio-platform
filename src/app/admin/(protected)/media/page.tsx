@@ -24,7 +24,7 @@ export default function AdminMediaPage() {
   const [copied, setCopied] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const load = () => fetch("/api/media").then((r) => r.json()).then(setMedia);
+  const load = () => fetch("/api/media", { cache: "no-store" }).then((r) => r.json()).then(setMedia);
   useEffect(() => { load(); }, []);
 
   async function upload(e: React.ChangeEvent<HTMLInputElement>) {
