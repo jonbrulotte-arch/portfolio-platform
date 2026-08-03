@@ -43,3 +43,4 @@ public/uploads/*
 .claude/
 skills-lock.json
 prisma/dev.db
+dev.db
