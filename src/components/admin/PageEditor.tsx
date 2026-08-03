@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
+import MarkdownEditor from "@/components/admin/MarkdownEditor";
 
 interface PageData {
   id?: string;
@@ -129,12 +130,11 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
             <div className="p-5">
               {activeTab === "content" && (
                 <div>
-                  <label className={labelCls}>Page Content (Markdown)</label>
-                  <textarea
+                  <label className={labelCls}>Page Content</label>
+                  <MarkdownEditor
                     value={form.content}
-                    onChange={(e) => set("content", e.target.value)}
+                    onChange={(v) => set("content", v)}
                     rows={20}
-                    className={inputCls + " font-mono text-sm resize-y"}
                     placeholder="# Page Title&#10;&#10;Write your page content in Markdown..."
                   />
                 </div>

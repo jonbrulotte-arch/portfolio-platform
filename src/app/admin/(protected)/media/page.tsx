@@ -118,17 +118,50 @@ export default function AdminMediaPage() {
       {other.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-gray-700 mb-3">Files ({other.length})</h2>
-          <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {other.map((m) => (
-              <div key={m.id} className="flex items-center justify-between px-4 py-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-900">{m.filename}</p>
-                  <p className="text-xs text-gray-400">{m.mimeType} · {formatSize(m.size)}</p>
+              <div
+                key={m.id}
+                className={`relative group rounded-lg overflow-hidden border-2 cursor-pointer transition-all ${selected === m.id ? "border-indigo-500" : "border-transparent hover:border-gray-300"}`}
+                onClick={() => setSelected(selected === m.id ? null : m.id)}
+              >
+                <div className="aspect-square bg-gray-50 flex items-center justify-center">
+                  {m.mimeType.startsWith("video/") && (
+                    <svg className="w-10 h-10 text-purple-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M4 6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2H4zm14 2 4-2v12l-4-2V8z"/>
+                    </svg>
+                  )}
+                  {m.mimeType === "application/pdf" && (
+                    <svg className="w-10 h-10 text-red-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 1.5L18.5 9H13V3.5zM8 13h8v1H8v-1zm0 3h5v1H8v-1zm0-6h3v1H8v-1z"/>
+                    </svg>
+                  )}
+                  {(m.mimeType.includes("word") || m.mimeType.includes("document")) && (
+                    <svg className="w-10 h-10 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 1.5L18.5 9H13V3.5zM8 11h8v1H8v-1zm0 3h8v1H8v-1zm0 3h5v1H8v-1z"/>
+                    </svg>
+                  )}
+                  {!m.mimeType.startsWith("video/") && m.mimeType !== "application/pdf" && !m.mimeType.includes("word") && !m.mimeType.includes("document") && (
+                    <svg className="w-10 h-10 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 2a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6H6zm7 1.5L18.5 9H13V3.5z"/>
+                    </svg>
+                  )}
                 </div>
-                <div className="flex gap-2">
-                  <button onClick={() => copyUrl(m.url)} className="text-xs text-indigo-600 hover:underline">Copy URL</button>
-                  <button onClick={() => remove(m.id)} className="text-xs text-red-500 hover:underline">Delete</button>
+                <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1 p-2">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); copyUrl(m.url); }}
+                    className="w-full text-xs bg-white text-gray-900 rounded px-2 py-1 hover:bg-gray-100"
+                  >
+                    {copied === m.url ? "Copied!" : "Copy URL"}
+                  </button>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); remove(m.id); }}
+                    className="w-full text-xs bg-red-500 text-white rounded px-2 py-1 hover:bg-red-600"
+                  >
+                    Delete
+                  </button>
                 </div>
+                <p className="text-xs text-gray-500 p-1 truncate">{m.filename}</p>
               </div>
             ))}
           </div>
