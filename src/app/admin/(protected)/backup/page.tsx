@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface BackupEntry {
   filename: string;
@@ -22,7 +22,10 @@ export default function AdminBackupPage() {
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [restoring, setRestoring] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
   const [msg, setMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const importRef = useRef<HTMLInputElement>(null);
 
   const load = () =>
     fetch("/api/backup", { cache: "no-store" })
@@ -60,6 +63,25 @@ export default function AdminBackupPage() {
       flash(`Restore failed: ${data.error}`, false);
     }
     setRestoring(null);
+  }
+
+  async function importAndRestore() {
+    if (!importFile) return;
+    if (!confirm(`Import and restore from "${importFile.name}"?\n\nThis will overwrite the current database and all uploaded files. This cannot be undone.`)) return;
+    setImporting(true);
+    const fd = new FormData();
+    fd.append("file", importFile);
+    const res = await fetch("/api/backup/import", { method: "POST", body: fd });
+    const data = await res.json();
+    if (res.ok) {
+      flash("Restore complete. You may need to restart the server for all changes to take effect.", true);
+      setImportFile(null);
+      if (importRef.current) importRef.current.value = "";
+      load();
+    } else {
+      flash(`Import failed: ${data.error}`, false);
+    }
+    setImporting(false);
   }
 
   async function remove(filename: string) {
@@ -108,6 +130,48 @@ export default function AdminBackupPage() {
         <pre className="bg-gray-900 text-green-400 text-xs rounded-lg p-3 overflow-x-auto whitespace-pre-wrap break-all">
 {`0 2 * * * cd /path/to/portfolio-platform && node scripts/backup-cron.js >> /var/log/portfolio-backup.log 2>&1`}
         </pre>
+      </div>
+
+      {/* Import & Restore */}
+      <div className="mb-6 bg-white border border-gray-200 rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-gray-700 mb-1">Restore from File</h2>
+        <p className="text-xs text-gray-500 mb-4">
+          Upload a <code className="bg-gray-100 px-1 rounded">.enc</code> backup file downloaded from another server to migrate your data.
+          The current database and uploads will be replaced.
+        </p>
+        <div className="flex items-center gap-3 flex-wrap">
+          <label className="cursor-pointer flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors">
+            <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            {importFile ? importFile.name : "Choose .enc file…"}
+            <input
+              ref={importRef}
+              type="file"
+              accept=".enc"
+              className="hidden"
+              onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          {importFile && (
+            <>
+              <span className="text-xs text-gray-400">{formatSize(importFile.size)}</span>
+              <button
+                onClick={importAndRestore}
+                disabled={importing}
+                className="px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-medium hover:bg-amber-700 disabled:opacity-50 transition-colors"
+              >
+                {importing ? "Restoring…" : "Import & Restore"}
+              </button>
+              <button
+                onClick={() => { setImportFile(null); if (importRef.current) importRef.current.value = ""; }}
+                className="text-xs text-gray-400 hover:text-gray-600"
+              >
+                Clear
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Backup list */}
