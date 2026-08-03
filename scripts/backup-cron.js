@@ -32,7 +32,21 @@ if (fs.existsSync(envPath)) {
 // ---------------------------------------------------------------------------
 const ROOT = path.join(__dirname, "..");
 const BACKUP_DIR = path.join(ROOT, "backups");
-const DB_PATH = path.join(ROOT, "dev.db");
+function resolveDbPath() {
+  const url = process.env.DATABASE_URL ?? "";
+  const match = url.match(/^file:(.+)$/);
+  if (match) {
+    const p = match[1];
+    return path.isAbsolute(p) ? p : path.resolve(ROOT, p);
+  }
+  for (const name of ["dev.db", "database.db", "app.db", "portfolio.db"]) {
+    const candidate = path.join(ROOT, name);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  throw new Error(`Cannot locate SQLite database. Set DATABASE_URL in .env (current value: "${url}")`);
+}
+
+const DB_PATH = resolveDbPath();
 const UPLOADS_DIR = path.join(ROOT, "public", "uploads");
 const RETAIN_DAYS = parseInt(process.env.BACKUP_RETAIN_DAYS ?? "30", 10);
 

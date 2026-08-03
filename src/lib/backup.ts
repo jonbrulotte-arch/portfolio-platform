@@ -5,9 +5,25 @@ import path from "path";
 
 const ROOT = process.cwd();
 const BACKUP_DIR = path.join(ROOT, "backups");
-// DATABASE_URL is "file:./dev.db" — the file lives at the project root
-const DB_PATH = path.join(ROOT, "dev.db");
 const UPLOADS_DIR = path.join(ROOT, "public", "uploads");
+
+function resolveDbPath(): string {
+  const url = process.env.DATABASE_URL ?? "";
+  // Prisma SQLite URL formats: "file:./foo.db", "file:/absolute/path.db", "file:foo.db"
+  const match = url.match(/^file:(.+)$/);
+  if (match) {
+    const p = match[1];
+    return path.isAbsolute(p) ? p : path.resolve(ROOT, p);
+  }
+  // Fallback: look for any .db file at the root
+  for (const name of ["dev.db", "database.db", "app.db", "portfolio.db"]) {
+    const candidate = path.join(ROOT, name);
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  throw new Error(`Cannot locate SQLite database. Set DATABASE_URL in .env (current value: "${url}")`);
+}
+
+const DB_PATH = resolveDbPath();
 
 const ALGO = "aes-256-cbc";
 const KEY_LEN = 32;
