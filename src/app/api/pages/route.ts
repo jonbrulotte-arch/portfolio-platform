@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { revalidatePath } from "next/cache";
 
+export const dynamic = "force-dynamic";
+
 export async function GET() {
   const pages = await prisma.page.findMany({ orderBy: { updatedAt: "desc" } });
   return NextResponse.json(pages);

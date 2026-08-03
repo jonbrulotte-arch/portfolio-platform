@@ -4,71 +4,85 @@ import ProjectCard from "@/components/public/ProjectCard";
 import Link from "next/link";
 
 export default async function HomePage() {
-  const [settings, featured, recentProjects, categories] = await Promise.all([
-    getSettings(),
-    prisma.project.findMany({
-      where: { status: "published", featured: true },
-      orderBy: { sortOrder: "asc" },
-      take: 3,
-      include: {
-        category: true,
-        tags: { include: { tag: true } },
-        screenshots: { orderBy: { sortOrder: "asc" }, take: 1 },
-        links: { orderBy: { sortOrder: "asc" } },
-      },
-    }),
-    prisma.project.findMany({
-      where: { status: "published" },
-      orderBy: { publishedAt: "desc" },
-      take: 6,
-      include: {
-        category: true,
-        tags: { include: { tag: true } },
-        screenshots: { orderBy: { sortOrder: "asc" }, take: 1 },
-        links: { orderBy: { sortOrder: "asc" } },
-      },
-    }),
-    prisma.category.findMany({
-      orderBy: { sortOrder: "asc" },
-      include: { _count: { select: { projects: { where: { status: "published" } } } } },
-    }),
+  const settings = await getSettings();
+
+  const showHero       = settings.homeShowHero       !== "false";
+  const showCategories = settings.homeShowCategories !== "false";
+  const showFeatured   = settings.homeShowFeatured   !== "false";
+  const showRecent     = settings.homeShowRecent     !== "false";
+
+  const [featured, recentProjects, categories] = await Promise.all([
+    showFeatured
+      ? prisma.project.findMany({
+          where: { status: "published", featured: true },
+          orderBy: { sortOrder: "asc" },
+          take: 3,
+          include: {
+            category: true,
+            tags: { include: { tag: true } },
+            screenshots: { orderBy: { sortOrder: "asc" }, take: 1 },
+            links: { orderBy: { sortOrder: "asc" } },
+          },
+        })
+      : Promise.resolve([]),
+    showRecent
+      ? prisma.project.findMany({
+          where: { status: "published" },
+          orderBy: { publishedAt: "desc" },
+          take: 6,
+          include: {
+            category: true,
+            tags: { include: { tag: true } },
+            screenshots: { orderBy: { sortOrder: "asc" }, take: 1 },
+            links: { orderBy: { sortOrder: "asc" } },
+          },
+        })
+      : Promise.resolve([]),
+    showCategories
+      ? prisma.category.findMany({
+          orderBy: { sortOrder: "asc" },
+          include: { _count: { select: { projects: { where: { status: "published" } } } } },
+        })
+      : Promise.resolve([]),
   ]);
 
   return (
     <>
       {/* Hero */}
-      <section className="bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-24 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-            {settings.ownerName || settings.siteName}
-          </h1>
-          <p className="text-xl sm:text-2xl text-gray-600 mb-4">{settings.siteTagline}</p>
-          {settings.ownerBio && (
-            <p className="text-gray-500 max-w-2xl mx-auto mb-8">{settings.ownerBio}</p>
-          )}
-          <div className="flex flex-wrap gap-3 justify-center">
-            <Link
-              href="/projects"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
-            >
-              Browse Projects
-            </Link>
-            {settings.githubUrl && (
-              <a
-                href={settings.githubUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
-              >
-                GitHub
-              </a>
+      {showHero && (
+        <section className="bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-24 px-4 sm:px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+              {settings.ownerName || settings.siteName}
+            </h1>
+            <p className="text-xl sm:text-2xl text-gray-600 mb-4">{settings.siteTagline}</p>
+            {settings.ownerBio && (
+              <p className="text-gray-500 max-w-2xl mx-auto mb-8">{settings.ownerBio}</p>
             )}
+            <div className="flex flex-wrap gap-3 justify-center">
+              <Link
+                href="/projects"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-lg font-medium hover:bg-indigo-700 transition-colors"
+              >
+                Browse Projects
+              </Link>
+              {settings.githubUrl && (
+                <a
+                  href={settings.githubUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-6 py-3 border border-gray-300 text-gray-700 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  GitHub
+                </a>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Categories */}
-      {categories.length > 0 && (
+      {showCategories && categories.length > 0 && (
         <section className="py-12 px-4 sm:px-6 border-b border-gray-100">
           <div className="max-w-6xl mx-auto">
             <div className="flex flex-wrap gap-3 justify-center">
@@ -89,7 +103,7 @@ export default async function HomePage() {
       )}
 
       {/* Featured */}
-      {featured.length > 0 && (
+      {showFeatured && featured.length > 0 && (
         <section className="py-16 px-4 sm:px-6">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-8">
@@ -106,7 +120,7 @@ export default async function HomePage() {
       )}
 
       {/* Recent */}
-      {recentProjects.length > 0 && (
+      {showRecent && recentProjects.length > 0 && (
         <section className="py-16 px-4 sm:px-6 bg-gray-50">
           <div className="max-w-6xl mx-auto">
             <div className="flex items-center justify-between mb-8">

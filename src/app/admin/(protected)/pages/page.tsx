@@ -2,6 +2,8 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { formatDate } from "@/lib/utils";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPagesPage() {
   const pages = await prisma.page.findMany({ orderBy: { updatedAt: "desc" } });
 

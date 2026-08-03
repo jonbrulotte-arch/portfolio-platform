@@ -41,6 +41,15 @@ const SECTIONS = [
       { key: "analyticsId", label: "Analytics ID (GA4)", type: "text" },
     ],
   },
+  {
+    title: "Homepage Sections",
+    fields: [
+      { key: "homeShowHero",       label: "Show Hero Section",      type: "toggle" },
+      { key: "homeShowCategories", label: "Show Categories Bar",    type: "toggle" },
+      { key: "homeShowFeatured",   label: "Show Featured Projects", type: "toggle" },
+      { key: "homeShowRecent",     label: "Show Recent Projects",   type: "toggle" },
+    ],
+  },
 ];
 
 export default function AdminSettingsPage() {
@@ -86,36 +95,55 @@ export default function AdminSettingsPage() {
             <div className="space-y-4">
               {section.fields.map((field) => (
                 <div key={field.key}>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
-                  {field.type === "textarea" ? (
-                    <textarea
-                      value={settings[field.key] ?? ""}
-                      onChange={(e) => setSettings((s) => ({ ...s, [field.key]: e.target.value }))}
-                      rows={3}
-                      className={inputCls}
-                    />
-                  ) : field.type === "color" ? (
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={settings[field.key] ?? "#6366f1"}
-                        onChange={(e) => setSettings((s) => ({ ...s, [field.key]: e.target.value }))}
-                        className="w-10 h-9 rounded border border-gray-300 cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={settings[field.key] ?? ""}
-                        onChange={(e) => setSettings((s) => ({ ...s, [field.key]: e.target.value }))}
-                        className={inputCls}
-                      />
-                    </div>
+                  {field.type === "toggle" ? (
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span className="text-sm font-medium text-gray-700">{field.label}</span>
+                      <button
+                        type="button"
+                        onClick={() => setSettings((s) => ({ ...s, [field.key]: s[field.key] === "false" ? "true" : "false" }))}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          settings[field.key] !== "false" ? "bg-indigo-600" : "bg-gray-200"
+                        }`}
+                      >
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                          settings[field.key] !== "false" ? "translate-x-6" : "translate-x-1"
+                        }`} />
+                      </button>
+                    </label>
                   ) : (
-                    <input
-                      type={field.type}
-                      value={settings[field.key] ?? ""}
-                      onChange={(e) => setSettings((s) => ({ ...s, [field.key]: e.target.value }))}
-                      className={inputCls}
-                    />
+                    <>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+                      {field.type === "textarea" ? (
+                        <textarea
+                          value={settings[field.key] ?? ""}
+                          onChange={(e) => setSettings((s) => ({ ...s, [field.key]: e.target.value }))}
+                          rows={3}
+                          className={inputCls}
+                        />
+                      ) : field.type === "color" ? (
+                        <div className="flex gap-2">
+                          <input
+                            type="color"
+                            value={settings[field.key] ?? "#6366f1"}
+                            onChange={(e) => setSettings((s) => ({ ...s, [field.key]: e.target.value }))}
+                            className="w-10 h-9 rounded border border-gray-300 cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={settings[field.key] ?? ""}
+                            onChange={(e) => setSettings((s) => ({ ...s, [field.key]: e.target.value }))}
+                            className={inputCls}
+                          />
+                        </div>
+                      ) : (
+                        <input
+                          type={field.type}
+                          value={settings[field.key] ?? ""}
+                          onChange={(e) => setSettings((s) => ({ ...s, [field.key]: e.target.value }))}
+                          className={inputCls}
+                        />
+                      )}
+                    </>
                   )}
                 </div>
               ))}

@@ -26,6 +26,11 @@ const defaults: Record<string, string> = {
   ownerName: "Portfolio Owner",
   accentColor: "#6366f1",
   footerText: "Built with care.",
+  // Homepage section visibility (default all on)
+  homeShowHero: "true",
+  homeShowCategories: "true",
+  homeShowFeatured: "true",
+  homeShowRecent: "true",
 };
 
 export async function getSettings(): Promise<Record<string, string>> {
