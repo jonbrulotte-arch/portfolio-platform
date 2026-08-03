@@ -1,6 +1,10 @@
 import { getSettings } from "@/lib/settings";
 import { prisma } from "@/lib/prisma";
 import SiteNav from "@/components/public/SiteNav";
+
+// Always fetch fresh data so nav pages and site settings reflect the
+// latest admin changes without waiting for cache revalidation.
+export const dynamic = "force-dynamic";
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const [settings, navPages] = await Promise.all([
     getSettings(),
