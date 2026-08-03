@@ -5,7 +5,8 @@ import path from "path";
 
 const ROOT = process.cwd();
 const BACKUP_DIR = path.join(ROOT, "backups");
-const DB_PATH = path.join(ROOT, "prisma", "dev.db");
+// DATABASE_URL is "file:./dev.db" — the file lives at the project root
+const DB_PATH = path.join(ROOT, "dev.db");
 const UPLOADS_DIR = path.join(ROOT, "public", "uploads");
 
 const ALGO = "aes-256-cbc";
@@ -99,7 +100,7 @@ export function restoreBackup(filename: string): void {
   }
 
   // Extract: restores dev.db and uploads/ in place
-  execSync(`tar -xzf "${tarPath}" -C "${ROOT}/prisma" "${path.basename(DB_PATH)}" && tar -xzf "${tarPath}" -C "${path.dirname(UPLOADS_DIR)}" "${path.basename(UPLOADS_DIR)}"`, { stdio: "pipe" });
+  execSync(`tar -xzf "${tarPath}" -C "${ROOT}" "${path.basename(DB_PATH)}" && tar -xzf "${tarPath}" -C "${path.dirname(UPLOADS_DIR)}" "${path.basename(UPLOADS_DIR)}"`, { stdio: "pipe" });
 
   fs.unlinkSync(tarPath);
 }

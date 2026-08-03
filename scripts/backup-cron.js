@@ -32,7 +32,7 @@ if (fs.existsSync(envPath)) {
 // ---------------------------------------------------------------------------
 const ROOT = path.join(__dirname, "..");
 const BACKUP_DIR = path.join(ROOT, "backups");
-const DB_PATH = path.join(ROOT, "prisma", "dev.db");
+const DB_PATH = path.join(ROOT, "dev.db");
 const UPLOADS_DIR = path.join(ROOT, "public", "uploads");
 const RETAIN_DAYS = parseInt(process.env.BACKUP_RETAIN_DAYS ?? "30", 10);
 
