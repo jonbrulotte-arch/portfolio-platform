@@ -21,6 +21,8 @@ export default async function PublicLayout({ children }: { children: React.React
         siteName={settings.siteName}
         pages={navPages}
         accentColor={settings.accentColor}
+        siteLogo={settings.siteLogo}
+        siteLogoAlt={settings.siteLogoAlt}
       />
       <main className="flex-1">{children}</main>
       <footer className="border-t border-gray-100 bg-gray-50 mt-16">

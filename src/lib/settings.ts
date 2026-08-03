@@ -15,6 +15,8 @@ export const SETTING_KEYS = {
   footerText: "footerText",
   analyticsId: "analyticsId",
   ogDefaultImage: "ogDefaultImage",
+  siteLogo: "siteLogo",
+  siteLogoAlt: "siteLogoAlt",
 } as const;
 
 export type SettingKey = keyof typeof SETTING_KEYS;

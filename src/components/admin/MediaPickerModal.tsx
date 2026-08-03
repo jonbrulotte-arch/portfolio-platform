@@ -13,7 +13,7 @@ interface MediaItem {
 interface Props {
   open: boolean;
   onClose: () => void;
-  onSelect: (url: string, filename: string) => void;
+  onSelect: (url: string, filename: string, alt: string) => void;
 }
 
 function FileIcon({ mimeType }: { mimeType: string }) {
@@ -86,7 +86,7 @@ export default function MediaPickerModal({ open, onClose, onSelect }: Props) {
               {media.map((m) => (
                 <button
                   key={m.id}
-                  onClick={() => { onSelect(m.url, m.filename); onClose(); }}
+                  onClick={() => { onSelect(m.url, m.filename, m.alt ?? ""); onClose(); }}
                   className="group rounded-lg border-2 border-transparent hover:border-indigo-400 overflow-hidden text-left transition-all focus:outline-none focus:border-indigo-500"
                 >
                   <div className="aspect-square bg-gray-50 flex items-center justify-center overflow-hidden">

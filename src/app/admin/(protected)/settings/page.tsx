@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import MediaPickerModal from "@/components/admin/MediaPickerModal";
 
 const SECTIONS = [
   {
@@ -8,6 +9,7 @@ const SECTIONS = [
       { key: "siteName", label: "Site Name", type: "text" },
       { key: "siteTagline", label: "Tagline", type: "text" },
       { key: "siteDescription", label: "Description", type: "textarea" },
+      { key: "siteLogo", label: "Site Logo", type: "logo" },
     ],
   },
   {
@@ -56,10 +58,26 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [logoPicker, setLogoPicker] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoUploadRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/settings", { cache: "no-store" }).then((r) => r.json()).then(setSettings);
   }, []);
+
+  async function uploadLogo(file: File) {
+    setLogoUploading(true);
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/media", { method: "POST", body: fd });
+    if (res.ok) {
+      const m = await res.json();
+      setSettings((s) => ({ ...s, siteLogo: m.url, siteLogoAlt: s.siteLogoAlt || file.name }));
+    }
+    setLogoUploading(false);
+    if (logoUploadRef.current) logoUploadRef.current.value = "";
+  }
 
   async function save() {
     setSaving(true);
@@ -95,7 +113,52 @@ export default function AdminSettingsPage() {
             <div className="space-y-4">
               {section.fields.map((field) => (
                 <div key={field.key}>
-                  {field.type === "toggle" ? (
+                  {field.type === "logo" ? (
+                    <div className="space-y-3">
+                      <label className="block text-sm font-medium text-gray-700">{field.label}</label>
+                      {settings.siteLogo && (
+                        <div className="flex items-center gap-3">
+                          <img src={settings.siteLogo} alt={settings.siteLogoAlt || "Site logo"} className="h-12 max-w-[200px] object-contain rounded border border-gray-200 bg-gray-50 p-1" />
+                          <button
+                            type="button"
+                            onClick={() => setSettings((s) => ({ ...s, siteLogo: "", siteLogoAlt: "" }))}
+                            className="text-xs text-red-500 hover:underline"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex gap-2">
+                        <label className={`cursor-pointer text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${logoUploading ? "opacity-60 pointer-events-none" : ""}`}>
+                          {logoUploading ? "Uploading…" : "Upload Logo"}
+                          <input
+                            ref={logoUploadRef}
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])}
+                          />
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => setLogoPicker(true)}
+                          className="text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          Browse Library
+                        </button>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Logo Alt Text (for accessibility)</label>
+                        <input
+                          type="text"
+                          value={settings.siteLogoAlt ?? ""}
+                          onChange={(e) => setSettings((s) => ({ ...s, siteLogoAlt: e.target.value }))}
+                          placeholder="e.g. Acme Corp logo"
+                          className={inputCls}
+                        />
+                      </div>
+                    </div>
+                  ) : field.type === "toggle" ? (
                     <label className="flex items-center justify-between cursor-pointer">
                       <span className="text-sm font-medium text-gray-700">{field.label}</span>
                       <button
@@ -161,6 +224,15 @@ export default function AdminSettingsPage() {
           {saved ? "Saved!" : saving ? "Saving…" : "Save Changes"}
         </button>
       </div>
+
+      <MediaPickerModal
+        open={logoPicker}
+        onClose={() => setLogoPicker(false)}
+        onSelect={(url, filename, alt) => {
+          setSettings((s) => ({ ...s, siteLogo: url, siteLogoAlt: s.siteLogoAlt || alt || filename }));
+          setLogoPicker(false);
+        }}
+      />
     </div>
   );
 }

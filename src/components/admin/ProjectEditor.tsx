@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
 import MediaPickerModal from "@/components/admin/MediaPickerModal";
@@ -48,6 +48,8 @@ export default function ProjectEditor({ initialData, categories, tags }: Props) 
   const [activeTab, setActiveTab] = useState<"content" | "media" | "links" | "seo" | "embed">("content");
   const [techInput, setTechInput] = useState("");
   const [mediaPickerTarget, setMediaPickerTarget] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const uploadRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<ProjectData>({
     title: initialData?.title ?? "",
@@ -141,6 +143,23 @@ export default function ProjectEditor({ initialData, categories, tags }: Props) 
     if (!confirm("Delete this project? This cannot be undone.")) return;
     await fetch(`/api/projects/${initialData.id}`, { method: "DELETE" });
     router.push("/admin/projects");
+  }
+
+  async function uploadImages(files: FileList) {
+    setUploading(true);
+    const added: typeof form.screenshots = [];
+    for (const file of Array.from(files)) {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/media", { method: "POST", body: fd });
+      if (res.ok) {
+        const m = await res.json();
+        added.push({ url: m.url, alt: m.alt ?? file.name, caption: "", sortOrder: form.screenshots.length + added.length });
+      }
+    }
+    if (added.length) set("screenshots", [...form.screenshots, ...added]);
+    setUploading(false);
+    if (uploadRef.current) uploadRef.current.value = "";
   }
 
   async function saveVersion() {
@@ -293,18 +312,29 @@ export default function ProjectEditor({ initialData, categories, tags }: Props) 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-gray-500">Manage screenshots and cover image.</p>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
+                      <label className={`cursor-pointer text-sm font-medium px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
+                        {uploading ? "Uploading…" : "Upload"}
+                        <input
+                          ref={uploadRef}
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => e.target.files?.length && uploadImages(e.target.files)}
+                        />
+                      </label>
                       <button
-                        onClick={() => { addScreenshot(); setMediaPickerTarget(form.screenshots.length); }}
+                        onClick={() => setMediaPickerTarget(form.screenshots.length)}
                         className="text-sm text-indigo-600 hover:underline"
                       >
-                        + From Library
+                        Browse Library
                       </button>
                       <button
                         onClick={addScreenshot}
                         className="text-sm text-gray-500 hover:underline"
                       >
-                        + Add URL
+                        + URL
                       </button>
                     </div>
                   </div>
@@ -556,12 +586,13 @@ export default function ProjectEditor({ initialData, categories, tags }: Props) 
       <MediaPickerModal
         open={mediaPickerTarget !== null}
         onClose={() => setMediaPickerTarget(null)}
-        onSelect={(url, filename) => {
+        onSelect={(url, filename, alt) => {
           if (mediaPickerTarget === null) return;
           if (mediaPickerTarget >= form.screenshots.length) {
-            set("screenshots", [...form.screenshots, { url, alt: filename, caption: "", sortOrder: form.screenshots.length }]);
+            set("screenshots", [...form.screenshots, { url, alt: alt || filename, caption: "", sortOrder: form.screenshots.length }]);
           } else {
             updateScreenshot(mediaPickerTarget, "url", url);
+            if (!form.screenshots[mediaPickerTarget].alt) updateScreenshot(mediaPickerTarget, "alt", alt || filename);
           }
           setMediaPickerTarget(null);
         }}

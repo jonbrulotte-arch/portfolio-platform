@@ -12,9 +12,11 @@ interface SiteNavProps {
   siteName: string;
   pages: NavItem[];
   accentColor: string;
+  siteLogo?: string;
+  siteLogoAlt?: string;
 }
 
-export default function SiteNav({ siteName, pages, accentColor }: SiteNavProps) {
+export default function SiteNav({ siteName, pages, accentColor, siteLogo, siteLogoAlt }: SiteNavProps) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
 
@@ -29,8 +31,16 @@ export default function SiteNav({ siteName, pages, accentColor }: SiteNavProps) 
   return (
     <nav className="sticky top-0 z-50 bg-white/95 backdrop-blur border-b border-gray-100 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-        <Link href="/" className="font-bold text-xl tracking-tight" style={{ color: accentColor }}>
-          {siteName}
+        <Link href="/" className="flex items-center" style={{ color: accentColor }}>
+          {siteLogo ? (
+            <img
+              src={siteLogo}
+              alt={siteLogoAlt || siteName}
+              className="h-8 max-w-[160px] object-contain"
+            />
+          ) : (
+            <span className="font-bold text-xl tracking-tight">{siteName}</span>
+          )}
         </Link>
 
         <div className="hidden md:flex items-center gap-6">
