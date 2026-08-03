@@ -28,8 +28,8 @@ export default function LoginPage() {
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
           <div className="mb-8 text-center">
-            <h1 className="text-2xl font-bold text-gray-900">Admin Login</h1>
-            <p className="text-sm text-gray-500 mt-1">Portfolio Platform</p>
+            <h1 className="text-2xl font-bold text-gray-900">Sympl CMS</h1>
+            <p className="text-sm text-gray-500 mt-1">Sign in to your dashboard</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">

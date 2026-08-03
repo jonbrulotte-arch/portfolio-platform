@@ -1,7 +1,10 @@
+export const dynamic = "force-dynamic";
+
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
 
 async function auth() {
   const session = await getServerSession(authOptions);
@@ -86,6 +89,8 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     },
   });
 
+  revalidatePath("/projects", "layout");
+  revalidatePath(`/projects/${project.slug}`);
   return NextResponse.json(project);
 }
 
@@ -93,6 +98,9 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
   const err = await auth();
   if (err) return err;
 
+  const project = await prisma.project.findUnique({ where: { id: params.id }, select: { slug: true } });
   await prisma.project.delete({ where: { id: params.id } });
+  if (project) revalidatePath(`/projects/${project.slug}`);
+  revalidatePath("/projects", "layout");
   return NextResponse.json({ ok: true });
 }

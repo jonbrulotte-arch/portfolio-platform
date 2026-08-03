@@ -115,12 +115,14 @@ model Page {
   status      String        @default("draft")
   inNav       Boolean       @default(false)
   navOrder    Int           @default(0)
-  seoTitle    String?
-  seoDesc     String?
-  ogImage     String?
-  publishedAt DateTime?
-  scheduledAt DateTime?
-  versions    PageVersion[]
+  seoTitle     String?
+  seoDesc      String?
+  ogImage      String?
+  heroImage    String?
+  heroImageAlt String?
+  publishedAt  DateTime?
+  scheduledAt  DateTime?
+  versions     PageVersion[]
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 }
@@ -143,6 +145,57 @@ model Media {
   alt       String?
   tags      String?
   createdAt DateTime @default(now())
+}
+
+model BlogPost {
+  id           String         @id @default(cuid())
+  title        String
+  slug         String         @unique
+  excerpt      String?
+  content      String?
+  status       String         @default("draft")
+  featured     Boolean        @default(false)
+  authorName   String?
+  heroImage    String?
+  heroImageAlt String?
+  categoryId   String?
+  category     BlogCategory?  @relation(fields: [categoryId], references: [id])
+  tags         BlogPostTag[]
+  seoTitle     String?
+  seoDesc      String?
+  ogImage      String?
+  publishedAt  DateTime?
+  scheduledAt  DateTime?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model BlogCategory {
+  id        String      @id @default(cuid())
+  name      String      @unique
+  slug      String      @unique
+  color     String?
+  sortOrder Int         @default(0)
+  posts     BlogPost[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+}
+
+model BlogTag {
+  id        String        @id @default(cuid())
+  name      String        @unique
+  slug      String        @unique
+  posts     BlogPostTag[]
+  createdAt DateTime      @default(now())
+}
+
+model BlogPostTag {
+  postId String
+  tagId  String
+  post   BlogPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    BlogTag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
 }
 
 model SiteSetting {

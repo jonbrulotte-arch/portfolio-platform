@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { writeFile } from "fs/promises";
+import { writeFile, mkdir } from "fs/promises";
 import path from "path";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -31,6 +33,7 @@ export async function POST(req: Request) {
   const ext = path.extname(file.name);
   const filename = `${Date.now()}-${Math.random().toString(36).slice(2)}${ext}`;
   const uploadDir = path.join(process.cwd(), "public", "uploads");
+  await mkdir(uploadDir, { recursive: true });
   await writeFile(path.join(uploadDir, filename), buffer);
 
   const url = `/uploads/${filename}`;

@@ -15,6 +15,11 @@ export const SETTING_KEYS = {
   footerText: "footerText",
   analyticsId: "analyticsId",
   ogDefaultImage: "ogDefaultImage",
+  siteLogo: "siteLogo",
+  siteLogoAlt: "siteLogoAlt",
+  heroImage: "heroImage",
+  heroImageAlt: "heroImageAlt",
+  heroStyle: "heroStyle",
 } as const;
 
 export type SettingKey = keyof typeof SETTING_KEYS;
@@ -26,6 +31,13 @@ const defaults: Record<string, string> = {
   ownerName: "Portfolio Owner",
   accentColor: "#6366f1",
   footerText: "Built with care.",
+  heroStyle: "gradient",
+  // Homepage section visibility (default all on)
+  homeShowHero: "true",
+  homeShowCategories: "true",
+  homeShowFeatured: "true",
+  homeShowRecent: "true",
+  homeShowBlog: "true",
 };
 
 export async function getSettings(): Promise<Record<string, string>> {

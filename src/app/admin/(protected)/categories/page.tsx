@@ -1,5 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
+const EMOJI_GROUPS = [
+  { label: "Tech", emojis: ["💻","🖥️","📱","⌨️","🖱️","🖨️","💾","💿","📡","🔌","🔋","📲","🤖","🧠","⚡","🔧","🔩","⚙️","🛠️","🔬"] },
+  { label: "Web", emojis: ["🌐","🌍","🔗","📡","🛜","📶","🔒","🔓","🛡️","🌊","🔍","📊","📈","📉","🗂️","📂","📁","🗃️","🗄️","📋"] },
+  { label: "Dev", emojis: ["⌨️","📝","✏️","🖊️","📄","📃","📜","🗒️","🧾","🔐","🔑","🗝️","🔏","📌","📍","🚀","🛸","🏗️","🧱","🔭"] },
+  { label: "Design", emojis: ["🎨","🖌️","🖍️","✏️","📐","📏","🎭","🎬","🎥","📷","📸","🖼️","🎞️","🎨","🌈","✨","💡","🔦","🕯️","🔆"] },
+  { label: "Data", emojis: ["📊","📈","📉","🗃️","🗄️","💾","🗂️","📋","📑","📰","📓","📔","📒","📕","📗","📘","📙","🔢","🔣","🧮"] },
+  { label: "People", emojis: ["👤","👥","🧑‍💻","👨‍💻","👩‍💻","🧑‍🎨","🧑‍🔬","🧑‍🏫","🧑‍🔧","👷","🧑‍💼","🤝","🫂","🧩","🎯","🏆","🥇","🎖️","🏅","⭐"] },
+  { label: "Misc", emojis: ["🔥","💎","🌟","⚡","🎉","🎊","🎁","🎈","🎀","🏷️","📦","📫","📬","📭","📮","🗳️","📥","📤","📩","✉️"] },
+];
 
 interface Category {
   id: string;
@@ -16,9 +26,20 @@ export default function AdminCategoriesPage() {
   const [form, setForm] = useState({ name: "", description: "", color: "#6366f1", icon: "", sortOrder: 0 });
   const [editing, setEditing] = useState<Category | null>(null);
   const [msg, setMsg] = useState("");
+  const [emojiOpen, setEmojiOpen] = useState(false);
+  const [emojiTab, setEmojiTab] = useState(0);
+  const emojiRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch("/api/categories").then((r) => r.json()).then(setCats);
+    function handleClick(e: MouseEvent) {
+      if (emojiRef.current && !emojiRef.current.contains(e.target as Node)) setEmojiOpen(false);
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/categories", { cache: "no-store" }).then((r) => r.json()).then(setCats);
   }, []);
 
   async function save() {
@@ -65,9 +86,50 @@ export default function AdminCategoriesPage() {
             <label className="text-xs text-gray-600 block mb-1">Name *</label>
             <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} placeholder="Web Apps" />
           </div>
-          <div>
+          <div ref={emojiRef} className="relative">
             <label className="text-xs text-gray-600 block mb-1">Icon (emoji)</label>
-            <input value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className={inputCls} placeholder="🌐" />
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setEmojiOpen((v) => !v)}
+                className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white hover:bg-gray-50 min-w-[80px]"
+              >
+                <span className="text-xl leading-none">{form.icon || "?"}</span>
+                <span className="text-gray-400 text-xs">Pick</span>
+              </button>
+              {form.icon && (
+                <button type="button" onClick={() => setForm({ ...form, icon: "" })} className="text-xs text-gray-400 hover:text-red-500 px-2">✕</button>
+              )}
+            </div>
+            {emojiOpen && (
+              <div className="absolute z-50 top-full left-0 mt-1 w-72 bg-white border border-gray-200 rounded-xl shadow-lg p-3">
+                <div className="flex gap-1 mb-2 flex-wrap">
+                  {EMOJI_GROUPS.map((g, i) => (
+                    <button
+                      key={g.label}
+                      type="button"
+                      onClick={() => setEmojiTab(i)}
+                      className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${emojiTab === i ? "bg-indigo-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+                    >
+                      {g.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="grid grid-cols-10 gap-0.5">
+                  {EMOJI_GROUPS[emojiTab].emojis.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => { setForm({ ...form, icon: emoji }); setEmojiOpen(false); }}
+                      className={`text-xl p-1 rounded hover:bg-indigo-50 transition-colors leading-none ${form.icon === emoji ? "bg-indigo-100" : ""}`}
+                      title={emoji}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <div>
             <label className="text-xs text-gray-600 block mb-1">Color</label>

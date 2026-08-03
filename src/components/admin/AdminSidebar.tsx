@@ -7,11 +7,15 @@ import { useState } from "react";
 const nav = [
   { label: "Dashboard", href: "/admin", icon: "⊞" },
   { label: "Projects", href: "/admin/projects", icon: "◈" },
+  { label: "Blog", href: "/admin/blog", icon: "✍" },
+  { label: "Blog Categories", href: "/admin/blog-categories", icon: "⊹" },
   { label: "Pages", href: "/admin/pages", icon: "☰" },
   { label: "Categories", href: "/admin/categories", icon: "⊹" },
   { label: "Tags", href: "/admin/tags", icon: "#" },
   { label: "Media", href: "/admin/media", icon: "⊡" },
+  { label: "Backup", href: "/admin/backup", icon: "↓" },
   { label: "Settings", href: "/admin/settings", icon: "⚙" },
+  { label: "Docs", href: "/admin/docs", icon: "?" },
 ];
 
 export default function AdminSidebar() {
@@ -46,8 +50,8 @@ export default function AdminSidebar() {
         }`}
       >
         <div className="p-5 border-b border-gray-800">
-          <Link href="/admin" className="font-bold text-lg text-white">
-            Admin
+          <Link href="/admin" className="font-bold text-lg text-white tracking-tight">
+            Sympl CMS
           </Link>
           <p className="text-xs text-gray-400 mt-0.5">Portfolio Platform</p>
         </div>

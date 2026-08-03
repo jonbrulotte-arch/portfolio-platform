@@ -36,4 +36,22 @@
   .prose-content table { @apply w-full border-collapse mb-4; }
   .prose-content th { @apply bg-gray-100 font-semibold px-4 py-2 text-left border border-gray-200; }
   .prose-content td { @apply px-4 py-2 border border-gray-200; }
+
+  /* Admin documentation renderer */
+  .doc-content h1 { @apply text-2xl font-bold mt-8 mb-4 text-gray-900 pb-2 border-b border-gray-200; }
+  .doc-content h2 { @apply text-xl font-semibold mt-8 mb-3 text-gray-900; }
+  .doc-content h3 { @apply text-base font-semibold mt-6 mb-2 text-gray-800; }
+  .doc-content h4 { @apply text-sm font-semibold mt-4 mb-1 text-gray-700 uppercase tracking-wide; }
+  .doc-content p  { @apply mb-4 text-gray-700 leading-relaxed text-sm; }
+  .doc-content ul { @apply list-disc list-outside pl-5 mb-4 text-gray-700 space-y-1 text-sm; }
+  .doc-content li { @apply leading-relaxed; }
+  .doc-content a  { @apply text-indigo-600 hover:underline; }
+  .doc-content code { @apply bg-gray-100 text-indigo-700 px-1 py-0.5 rounded text-xs font-mono; }
+  .doc-content .doc-pre { @apply bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto mb-4 text-xs; }
+  .doc-content .doc-pre code { @apply bg-transparent text-inherit p-0; }
+  .doc-content hr { @apply border-gray-200 my-8; }
+  .doc-content strong { @apply font-semibold text-gray-900; }
+  .doc-content table { @apply w-full border-collapse mb-6 text-sm; }
+  .doc-content td { @apply px-3 py-2 border border-gray-200 text-gray-700; }
+  .doc-content thead td { @apply bg-gray-50 font-semibold text-gray-900; }
 }

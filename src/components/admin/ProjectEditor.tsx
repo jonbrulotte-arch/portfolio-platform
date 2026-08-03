@@ -1,7 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
+import MediaPickerModal from "@/components/admin/MediaPickerModal";
+import MarkdownEditor from "@/components/admin/MarkdownEditor";
 
 interface Category { id: string; name: string; slug: string }
 interface Tag { id: string; name: string; slug: string }
@@ -45,6 +47,9 @@ export default function ProjectEditor({ initialData, categories, tags }: Props) 
   const [saveMsg, setSaveMsg] = useState("");
   const [activeTab, setActiveTab] = useState<"content" | "media" | "links" | "seo" | "embed">("content");
   const [techInput, setTechInput] = useState("");
+  const [mediaPickerTarget, setMediaPickerTarget] = useState<number | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const uploadRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<ProjectData>({
     title: initialData?.title ?? "",
@@ -138,6 +143,23 @@ export default function ProjectEditor({ initialData, categories, tags }: Props) 
     if (!confirm("Delete this project? This cannot be undone.")) return;
     await fetch(`/api/projects/${initialData.id}`, { method: "DELETE" });
     router.push("/admin/projects");
+  }
+
+  async function uploadImages(files: FileList) {
+    setUploading(true);
+    const added: typeof form.screenshots = [];
+    for (const file of Array.from(files)) {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/media", { method: "POST", body: fd });
+      if (res.ok) {
+        const m = await res.json();
+        added.push({ url: m.url, alt: m.alt ?? file.name, caption: "", sortOrder: form.screenshots.length + added.length });
+      }
+    }
+    if (added.length) set("screenshots", [...form.screenshots, ...added]);
+    setUploading(false);
+    if (uploadRef.current) uploadRef.current.value = "";
   }
 
   async function saveVersion() {
@@ -276,15 +298,13 @@ export default function ProjectEditor({ initialData, categories, tags }: Props) 
             <div className="p-5">
               {activeTab === "content" && (
                 <div>
-                  <label className={labelCls}>Full Description (Markdown)</label>
-                  <textarea
+                  <label className={labelCls}>Full Description</label>
+                  <MarkdownEditor
                     value={form.description}
-                    onChange={(e) => set("description", e.target.value)}
+                    onChange={(v) => set("description", v)}
                     rows={18}
-                    className={inputCls + " font-mono text-sm resize-y"}
                     placeholder="## Overview&#10;&#10;Describe your project in detail using Markdown..."
                   />
-                  <p className="text-xs text-gray-400 mt-1">Supports Markdown: ## headings, **bold**, `code`, - lists, [links](url)</p>
                 </div>
               )}
 
@@ -292,12 +312,31 @@ export default function ProjectEditor({ initialData, categories, tags }: Props) 
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-gray-500">Manage screenshots and cover image.</p>
-                    <button
-                      onClick={addScreenshot}
-                      className="text-sm text-indigo-600 hover:underline"
-                    >
-                      + Add Screenshot
-                    </button>
+                    <div className="flex gap-2 items-center">
+                      <label className={`cursor-pointer text-sm font-medium px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors ${uploading ? "opacity-60 pointer-events-none" : ""}`}>
+                        {uploading ? "Uploading…" : "Upload"}
+                        <input
+                          ref={uploadRef}
+                          type="file"
+                          multiple
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => e.target.files?.length && uploadImages(e.target.files)}
+                        />
+                      </label>
+                      <button
+                        onClick={() => setMediaPickerTarget(form.screenshots.length)}
+                        className="text-sm text-indigo-600 hover:underline"
+                      >
+                        Browse Library
+                      </button>
+                      <button
+                        onClick={addScreenshot}
+                        className="text-sm text-gray-500 hover:underline"
+                      >
+                        + URL
+                      </button>
+                    </div>
                   </div>
                   {form.screenshots.length === 0 && (
                     <p className="text-sm text-gray-400 py-4 text-center">No screenshots yet.</p>
@@ -313,13 +352,22 @@ export default function ProjectEditor({ initialData, categories, tags }: Props) 
                       )}
                       <div>
                         <label className="text-xs font-medium text-gray-600 block mb-1">URL</label>
-                        <input
-                          type="url"
-                          value={s.url}
-                          onChange={(e) => updateScreenshot(i, "url", e.target.value)}
-                          className={inputCls}
-                          placeholder="https://..."
-                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="url"
+                            value={s.url}
+                            onChange={(e) => updateScreenshot(i, "url", e.target.value)}
+                            className={inputCls}
+                            placeholder="https://... or browse library →"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setMediaPickerTarget(i)}
+                            className="shrink-0 px-3 py-2 text-xs border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-600 whitespace-nowrap"
+                          >
+                            Browse
+                          </button>
+                        </div>
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -534,6 +582,21 @@ export default function ProjectEditor({ initialData, categories, tags }: Props) 
           )}
         </div>
       </div>
+
+      <MediaPickerModal
+        open={mediaPickerTarget !== null}
+        onClose={() => setMediaPickerTarget(null)}
+        onSelect={(url, filename, alt) => {
+          if (mediaPickerTarget === null) return;
+          if (mediaPickerTarget >= form.screenshots.length) {
+            set("screenshots", [...form.screenshots, { url, alt: alt || filename, caption: "", sortOrder: form.screenshots.length }]);
+          } else {
+            updateScreenshot(mediaPickerTarget, "url", url);
+            if (!form.screenshots[mediaPickerTarget].alt) updateScreenshot(mediaPickerTarget, "alt", alt || filename);
+          }
+          setMediaPickerTarget(null);
+        }}
+      />
     </div>
   );
 }

@@ -3,6 +3,9 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
+import { revalidatePath } from "next/cache";
+
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -68,5 +71,6 @@ export async function POST(req: Request) {
     },
   });
 
+  revalidatePath("/projects", "layout");
   return NextResponse.json(project, { status: 201 });
 }
