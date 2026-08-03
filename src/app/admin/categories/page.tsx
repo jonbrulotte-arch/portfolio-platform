@@ -1,0 +1,130 @@
+"use client";
+import { useState, useEffect } from "react";
+
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  color: string | null;
+  icon: string | null;
+  sortOrder: number;
+}
+
+export default function AdminCategoriesPage() {
+  const [cats, setCats] = useState<Category[]>([]);
+  const [form, setForm] = useState({ name: "", description: "", color: "#6366f1", icon: "", sortOrder: 0 });
+  const [editing, setEditing] = useState<Category | null>(null);
+  const [msg, setMsg] = useState("");
+
+  useEffect(() => {
+    fetch("/api/categories").then((r) => r.json()).then(setCats);
+  }, []);
+
+  async function save() {
+    const method = editing ? "PUT" : "POST";
+    const url = editing ? `/api/categories/${editing.id}` : "/api/categories";
+    const res = await fetch(url, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(form),
+    });
+    if (res.ok) {
+      const updated = await res.json();
+      setCats((prev) =>
+        editing ? prev.map((c) => c.id === editing.id ? updated : c) : [...prev, updated]
+      );
+      setForm({ name: "", description: "", color: "#6366f1", icon: "", sortOrder: 0 });
+      setEditing(null);
+      setMsg("Saved!");
+    }
+  }
+
+  async function remove(id: string) {
+    if (!confirm("Delete category?")) return;
+    const res = await fetch(`/api/categories/${id}`, { method: "DELETE" });
+    if (res.ok) setCats((prev) => prev.filter((c) => c.id !== id));
+  }
+
+  function startEdit(cat: Category) {
+    setEditing(cat);
+    setForm({ name: cat.name, description: cat.description ?? "", color: cat.color ?? "#6366f1", icon: cat.icon ?? "", sortOrder: cat.sortOrder });
+  }
+
+  const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300";
+
+  return (
+    <div className="max-w-3xl">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Categories</h1>
+
+      {/* Form */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5 mb-6">
+        <h2 className="text-sm font-semibold text-gray-700 mb-4">{editing ? `Edit: ${editing.name}` : "Add Category"}</h2>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <label className="text-xs text-gray-600 block mb-1">Name *</label>
+            <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputCls} placeholder="Web Apps" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-600 block mb-1">Icon (emoji)</label>
+            <input value={form.icon} onChange={(e) => setForm({ ...form, icon: e.target.value })} className={inputCls} placeholder="🌐" />
+          </div>
+          <div>
+            <label className="text-xs text-gray-600 block mb-1">Color</label>
+            <div className="flex gap-2">
+              <input type="color" value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className="w-10 h-9 rounded border border-gray-300 cursor-pointer" />
+              <input value={form.color} onChange={(e) => setForm({ ...form, color: e.target.value })} className={inputCls} placeholder="#6366f1" />
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-gray-600 block mb-1">Sort Order</label>
+            <input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: +e.target.value })} className={inputCls} />
+          </div>
+          <div className="col-span-2">
+            <label className="text-xs text-gray-600 block mb-1">Description</label>
+            <input value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className={inputCls} />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <button onClick={save} className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700">
+            {editing ? "Update" : "Add Category"}
+          </button>
+          {editing && (
+            <button onClick={() => { setEditing(null); setForm({ name: "", description: "", color: "#6366f1", icon: "", sortOrder: 0 }); }}
+              className="px-4 py-2 border border-gray-300 text-gray-600 rounded-lg text-sm hover:bg-gray-50">
+              Cancel
+            </button>
+          )}
+          {msg && <span className="text-sm text-green-600 self-center">{msg}</span>}
+        </div>
+      </div>
+
+      {/* List */}
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        {cats.length === 0 ? (
+          <p className="p-8 text-center text-gray-400 text-sm">No categories yet.</p>
+        ) : (
+          <ul className="divide-y divide-gray-100">
+            {cats.map((cat) => (
+              <li key={cat.id} className="flex items-center justify-between px-5 py-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-6 h-6 rounded-full flex items-center justify-center text-sm" style={{ backgroundColor: cat.color ? `${cat.color}30` : "#e0e7ff" }}>
+                    {cat.icon || "⊹"}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">{cat.name}</p>
+                    {cat.description && <p className="text-xs text-gray-400">{cat.description}</p>}
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => startEdit(cat)} className="text-xs text-indigo-600 hover:underline">Edit</button>
+                  <button onClick={() => remove(cat.id)} className="text-xs text-red-500 hover:underline">Delete</button>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
