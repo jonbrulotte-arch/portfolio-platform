@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/prisma";
+import { getSettings } from "@/lib/settings";
 import ProjectCard from "@/components/public/ProjectCard";
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Projects" };
 
 interface Props {
@@ -11,6 +13,8 @@ interface Props {
 
 export default async function ProjectsPage({ searchParams }: Props) {
   const { category, tag, q, status } = searchParams;
+  const settings = await getSettings();
+  const accent = settings.accentColor || "#6366f1";
 
   const [projects, categories, tags] = await Promise.all([
     prisma.project.findMany({
@@ -130,7 +134,7 @@ export default async function ProjectsPage({ searchParams }: Props) {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5">
               {projects.map((p) => (
-                <ProjectCard key={p.id} project={p as any} />
+                <ProjectCard key={p.id} project={p as any} accent={accent} />
               ))}
             </div>
           )}

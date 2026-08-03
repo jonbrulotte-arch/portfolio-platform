@@ -37,6 +37,14 @@ const SECTIONS = [
     ],
   },
   {
+    title: "Hero Banner",
+    fields: [
+      { key: "heroImage",    label: "Hero Background Image", type: "logo" },
+      { key: "heroImageAlt", label: "Image Alt Text (ADA)", type: "text" },
+      { key: "heroStyle",    label: "Hero Style", type: "heroStyle" },
+    ],
+  },
+  {
     title: "SEO & Analytics",
     fields: [
       { key: "ogDefaultImage", label: "Default OG Image URL", type: "url" },
@@ -58,25 +66,25 @@ export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [logoPicker, setLogoPicker] = useState(false);
-  const [logoUploading, setLogoUploading] = useState(false);
+  const [logoPicker, setLogoPicker] = useState<string | null>(null); // key being picked
+  const [logoUploading, setLogoUploading] = useState<string | null>(null); // key being uploaded
   const logoUploadRef = useRef<HTMLInputElement>(null);
+  const heroUploadRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/settings", { cache: "no-store" }).then((r) => r.json()).then(setSettings);
   }, []);
 
-  async function uploadLogo(file: File) {
-    setLogoUploading(true);
+  async function uploadImage(file: File, key: string, altKey: string) {
+    setLogoUploading(key);
     const fd = new FormData();
     fd.append("file", file);
     const res = await fetch("/api/media", { method: "POST", body: fd });
     if (res.ok) {
       const m = await res.json();
-      setSettings((s) => ({ ...s, siteLogo: m.url, siteLogoAlt: s.siteLogoAlt || file.name }));
+      setSettings((s) => ({ ...s, [key]: m.url, [altKey]: s[altKey] || file.name }));
     }
-    setLogoUploading(false);
-    if (logoUploadRef.current) logoUploadRef.current.value = "";
+    setLogoUploading(null);
   }
 
   async function save() {
@@ -113,49 +121,58 @@ export default function AdminSettingsPage() {
             <div className="space-y-4">
               {section.fields.map((field) => (
                 <div key={field.key}>
-                  {field.type === "logo" ? (
-                    <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-700">{field.label}</label>
-                      {settings.siteLogo && (
-                        <div className="flex items-center gap-3">
-                          <img src={settings.siteLogo} alt={settings.siteLogoAlt || "Site logo"} className="h-12 max-w-[200px] object-contain rounded border border-gray-200 bg-gray-50 p-1" />
-                          <button
-                            type="button"
-                            onClick={() => setSettings((s) => ({ ...s, siteLogo: "", siteLogoAlt: "" }))}
-                            className="text-xs text-red-500 hover:underline"
-                          >
-                            Remove
-                          </button>
+                  {field.type === "logo" ? (() => {
+                    const imgKey = field.key;
+                    const altKey = field.key === "siteLogo" ? "siteLogoAlt" : field.key === "heroImage" ? "heroImageAlt" : field.key + "Alt";
+                    const uploadRef = field.key === "heroImage" ? heroUploadRef : logoUploadRef;
+                    const isUploading = logoUploading === imgKey;
+                    return (
+                      <div className="space-y-3">
+                        <label className="block text-sm font-medium text-gray-700">{field.label}</label>
+                        {settings[imgKey] && (
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={settings[imgKey]}
+                              alt={settings[altKey] || field.label}
+                              className={field.key === "heroImage" ? "h-20 max-w-xs w-full object-cover rounded border border-gray-200" : "h-12 max-w-[200px] object-contain rounded border border-gray-200 bg-gray-50 p-1"}
+                            />
+                            <button type="button" onClick={() => setSettings((s) => ({ ...s, [imgKey]: "", [altKey]: "" }))} className="text-xs text-red-500 hover:underline">Remove</button>
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <label className={`cursor-pointer text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${isUploading ? "opacity-60 pointer-events-none" : ""}`}>
+                            {isUploading ? "Uploading…" : "Upload Image"}
+                            <input ref={uploadRef} type="file" accept="image/*" className="hidden"
+                              onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f, imgKey, altKey); e.target.value = ""; }}
+                            />
+                          </label>
+                          <button type="button" onClick={() => setLogoPicker(imgKey)} className="text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">Browse Library</button>
                         </div>
-                      )}
-                      <div className="flex gap-2">
-                        <label className={`cursor-pointer text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors ${logoUploading ? "opacity-60 pointer-events-none" : ""}`}>
-                          {logoUploading ? "Uploading…" : "Upload Logo"}
-                          <input
-                            ref={logoUploadRef}
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => e.target.files?.[0] && uploadLogo(e.target.files[0])}
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          onClick={() => setLogoPicker(true)}
-                          className="text-sm px-3 py-1.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-                        >
-                          Browse Library
-                        </button>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Alt Text (required for accessibility)</label>
+                          <input type="text" value={settings[altKey] ?? ""} onChange={(e) => setSettings((s) => ({ ...s, [altKey]: e.target.value }))} placeholder="Describe the image" className={inputCls} />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Logo Alt Text (for accessibility)</label>
-                        <input
-                          type="text"
-                          value={settings.siteLogoAlt ?? ""}
-                          onChange={(e) => setSettings((s) => ({ ...s, siteLogoAlt: e.target.value }))}
-                          placeholder="e.g. Acme Corp logo"
-                          className={inputCls}
-                        />
+                    );
+                  })() : field.type === "heroStyle" ? (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">{field.label}</label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {[
+                          { value: "gradient", label: "Gradient", desc: "Colorful gradient, no image" },
+                          { value: "image-overlay", label: "Image + Overlay", desc: "Full-width image with dark overlay" },
+                          { value: "split", label: "Split", desc: "Text left, image right" },
+                        ].map((opt) => (
+                          <button
+                            key={opt.value}
+                            type="button"
+                            onClick={() => setSettings((s) => ({ ...s, heroStyle: opt.value }))}
+                            className={`p-3 rounded-lg border-2 text-left transition-colors ${(settings.heroStyle ?? "gradient") === opt.value ? "border-indigo-500 bg-indigo-50" : "border-gray-200 hover:border-gray-300"}`}
+                          >
+                            <div className="text-sm font-medium text-gray-900">{opt.label}</div>
+                            <div className="text-xs text-gray-500 mt-0.5">{opt.desc}</div>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   ) : field.type === "toggle" ? (
@@ -226,11 +243,13 @@ export default function AdminSettingsPage() {
       </div>
 
       <MediaPickerModal
-        open={logoPicker}
-        onClose={() => setLogoPicker(false)}
+        open={!!logoPicker}
+        onClose={() => setLogoPicker(null)}
         onSelect={(url, filename, alt) => {
-          setSettings((s) => ({ ...s, siteLogo: url, siteLogoAlt: s.siteLogoAlt || alt || filename }));
-          setLogoPicker(false);
+          if (!logoPicker) return;
+          const altKey = logoPicker === "siteLogo" ? "siteLogoAlt" : logoPicker === "heroImage" ? "heroImageAlt" : logoPicker + "Alt";
+          setSettings((s) => ({ ...s, [logoPicker]: url, [altKey]: s[altKey] || alt || filename }));
+          setLogoPicker(null);
         }}
       />
     </div>

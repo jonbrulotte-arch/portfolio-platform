@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { title, slug, content, status, inNav, navOrder, seoTitle, seoDesc, ogImage, scheduledAt } = await req.json();
+  const { title, slug, content, status, inNav, navOrder, seoTitle, seoDesc, ogImage, heroImage, heroImageAlt, scheduledAt } = await req.json();
   const finalSlug = slug || slugify(title);
   const page = await prisma.page.create({
     data: {
@@ -29,6 +29,8 @@ export async function POST(req: Request) {
       seoTitle: seoTitle || null,
       seoDesc: seoDesc || null,
       ogImage: ogImage || null,
+      heroImage: heroImage || null,
+      heroImageAlt: heroImageAlt || null,
       publishedAt: status === "published" ? new Date() : null,
       scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
     },

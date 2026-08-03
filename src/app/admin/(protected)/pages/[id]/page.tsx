@@ -19,6 +19,8 @@ export default async function EditPagePage({ params }: { params: { id: string } 
         seoTitle: page.seoTitle ?? "",
         seoDesc: page.seoDesc ?? "",
         ogImage: page.ogImage ?? "",
+        heroImage: page.heroImage ?? "",
+        heroImageAlt: page.heroImageAlt ?? "",
         scheduledAt: page.scheduledAt ? new Date(page.scheduledAt).toISOString().slice(0, 16) : "",
       }}
     />

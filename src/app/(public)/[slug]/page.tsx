@@ -15,6 +15,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: page.seoTitle ?? page.title,
     description: page.seoDesc ?? s.siteDescription,
+    openGraph: page.ogImage ? { images: [{ url: page.ogImage }] } : undefined,
   };
 }
 
@@ -42,19 +43,46 @@ export default async function DynamicPage({ params }: Props) {
   if (!page) notFound();
 
   return (
-    <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
-      <nav className="text-sm text-gray-400 mb-8">
-        <Link href="/" className="hover:text-gray-600">Home</Link>
-        <span className="mx-2">/</span>
-        <span className="text-gray-600">{page.title}</span>
-      </nav>
-      <h1 className="text-4xl font-bold text-gray-900 mb-8">{page.title}</h1>
-      {page.content && (
-        <div
-          className="prose-content"
-          dangerouslySetInnerHTML={{ __html: markdownToHtml(page.content) }}
-        />
-      )}
+    <div>
+      {/* Hero banner image */}
+      {page.heroImage ? (
+        <div className="relative h-56 sm:h-72 md:h-80 overflow-hidden bg-gray-900">
+          <img
+            src={page.heroImage}
+            alt={page.heroImageAlt ?? page.title}
+            className="w-full h-full object-cover opacity-70"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-gray-900/70 via-transparent to-transparent" />
+          <div className="absolute bottom-0 left-0 right-0 max-w-3xl mx-auto px-4 sm:px-6 pb-8">
+            <nav className="text-sm text-white/70 mb-3">
+              <Link href="/" className="hover:text-white">Home</Link>
+              <span className="mx-2">/</span>
+              <span className="text-white/90">{page.title}</span>
+            </nav>
+            <h1 className="text-3xl sm:text-4xl font-bold text-white leading-tight">{page.title}</h1>
+          </div>
+        </div>
+      ) : null}
+
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12">
+        {!page.heroImage && (
+          <>
+            <nav className="text-sm text-gray-400 mb-8">
+              <Link href="/" className="hover:text-gray-600">Home</Link>
+              <span className="mx-2">/</span>
+              <span className="text-gray-600">{page.title}</span>
+            </nav>
+            <h1 className="text-4xl font-bold text-gray-900 mb-8">{page.title}</h1>
+          </>
+        )}
+        {page.heroImage && <div className="mb-8" />}
+        {page.content && (
+          <div
+            className="prose-content"
+            dangerouslySetInnerHTML={{ __html: markdownToHtml(page.content) }}
+          />
+        )}
+      </div>
     </div>
   );
 }

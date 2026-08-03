@@ -1,8 +1,9 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
 import MarkdownEditor from "@/components/admin/MarkdownEditor";
+import MediaPickerModal from "@/components/admin/MediaPickerModal";
 
 interface PageData {
   id?: string;
@@ -15,6 +16,8 @@ interface PageData {
   seoTitle: string;
   seoDesc: string;
   ogImage: string;
+  heroImage: string;
+  heroImageAlt: string;
   scheduledAt: string;
 }
 
@@ -22,7 +25,10 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
-  const [activeTab, setActiveTab] = useState<"content" | "seo">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "media" | "seo">("content");
+  const [mediaPicker, setMediaPicker] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const uploadRef = useRef<HTMLInputElement>(null);
 
   const [form, setForm] = useState<PageData>({
     title: initialData?.title ?? "",
@@ -34,11 +40,27 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
     seoTitle: initialData?.seoTitle ?? "",
     seoDesc: initialData?.seoDesc ?? "",
     ogImage: initialData?.ogImage ?? "",
+    heroImage: initialData?.heroImage ?? "",
+    heroImageAlt: initialData?.heroImageAlt ?? "",
     scheduledAt: initialData?.scheduledAt ?? "",
   });
 
   const set = <K extends keyof PageData>(key: K, value: PageData[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
+
+  async function uploadHero(file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/media", { method: "POST", body: fd });
+      if (!res.ok) throw new Error("Upload failed");
+      const m = await res.json();
+      setForm((f) => ({ ...f, heroImage: m.url, heroImageAlt: f.heroImageAlt || m.alt || file.name }));
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function save(publishNow = false) {
     setSaving(true);
@@ -120,10 +142,10 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
 
           <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
             <div className="flex border-b border-gray-200">
-              {(["content", "seo"] as const).map((tab) => (
+              {(["content", "media", "seo"] as const).map((tab) => (
                 <button key={tab} onClick={() => setActiveTab(tab)}
-                  className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px ${activeTab === tab ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500"}`}>
-                  {tab === "content" ? "Content" : "SEO"}
+                  className={`px-4 py-3 text-sm font-medium border-b-2 -mb-px capitalize ${activeTab === tab ? "border-indigo-600 text-indigo-600" : "border-transparent text-gray-500"}`}>
+                  {tab === "media" ? "Hero Image" : tab === "seo" ? "SEO" : "Content"}
                 </button>
               ))}
             </div>
@@ -139,6 +161,72 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
                   />
                 </div>
               )}
+
+              {activeTab === "media" && (
+                <div className="space-y-4">
+                  <p className="text-sm text-gray-500">An optional banner image shown at the top of the page.</p>
+
+                  {/* Image preview */}
+                  {form.heroImage && (
+                    <div className="relative rounded-lg overflow-hidden border border-gray-200 aspect-[3/1] bg-gray-100">
+                      <img src={form.heroImage} alt={form.heroImageAlt || "Hero image"} className="w-full h-full object-cover" />
+                      <button
+                        onClick={() => setForm((f) => ({ ...f, heroImage: "", heroImageAlt: "" }))}
+                        className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-black/80 text-sm"
+                        aria-label="Remove hero image"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Upload / Browse / URL */}
+                  <div className="flex gap-2 flex-wrap">
+                    <input
+                      ref={uploadRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHero(f); e.target.value = ""; }}
+                    />
+                    <button
+                      onClick={() => uploadRef.current?.click()}
+                      disabled={uploading}
+                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                    >
+                      {uploading ? "Uploading…" : "Upload Image"}
+                    </button>
+                    <button
+                      onClick={() => setMediaPicker(true)}
+                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                    >
+                      Browse Library
+                    </button>
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Image URL</label>
+                    <input
+                      type="url"
+                      value={form.heroImage}
+                      onChange={(e) => set("heroImage", e.target.value)}
+                      className={inputCls}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div>
+                    <label className={labelCls}>Alt Text <span className="text-red-500">*</span> <span className="text-xs text-gray-400 font-normal">(required for accessibility)</span></label>
+                    <input
+                      type="text"
+                      value={form.heroImageAlt}
+                      onChange={(e) => set("heroImageAlt", e.target.value)}
+                      className={inputCls}
+                      placeholder="Describe the image for screen readers"
+                    />
+                  </div>
+                </div>
+              )}
+
               {activeTab === "seo" && (
                 <div className="space-y-4">
                   <div>
@@ -193,6 +281,15 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
           )}
         </div>
       </div>
+
+      <MediaPickerModal
+        open={mediaPicker}
+        onClose={() => setMediaPicker(false)}
+        onSelect={(url, filename, alt) => {
+          setForm((f) => ({ ...f, heroImage: url, heroImageAlt: f.heroImageAlt || alt || filename }));
+          setMediaPicker(false);
+        }}
+      />
     </div>
   );
 }
