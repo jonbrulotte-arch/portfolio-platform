@@ -37,6 +37,7 @@ const defaults: Record<string, string> = {
   homeShowCategories: "true",
   homeShowFeatured: "true",
   homeShowRecent: "true",
+  homeShowBlog: "true",
 };
 
 export async function getSettings(): Promise<Record<string, string>> {

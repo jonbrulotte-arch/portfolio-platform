@@ -3,6 +3,8 @@ import { getSettings } from "@/lib/settings";
 import ProjectCard from "@/components/public/ProjectCard";
 import Link from "next/link";
 
+export const dynamic = "force-dynamic";
+
 export default async function HomePage() {
   const settings = await getSettings();
 
@@ -10,13 +12,14 @@ export default async function HomePage() {
   const showCategories = settings.homeShowCategories !== "false";
   const showFeatured   = settings.homeShowFeatured   !== "false";
   const showRecent     = settings.homeShowRecent     !== "false";
+  const showBlog       = settings.homeShowBlog       !== "false";
 
   const accent = settings.accentColor || "#6366f1";
   const heroStyle = settings.heroStyle || "gradient";
   const heroImage = settings.heroImage || "";
   const heroImageAlt = settings.heroImageAlt || "";
 
-  const [featured, recentProjects, categories] = await Promise.all([
+  const [featured, recentProjects, categories, recentPosts] = await Promise.all([
     showFeatured
       ? prisma.project.findMany({
           where: { status: "published", featured: true },
@@ -47,6 +50,14 @@ export default async function HomePage() {
       ? prisma.category.findMany({
           orderBy: { sortOrder: "asc" },
           include: { _count: { select: { projects: { where: { status: "published" } } } } },
+        })
+      : Promise.resolve([]),
+    showBlog
+      ? prisma.blogPost.findMany({
+          where: { status: "published" },
+          orderBy: { publishedAt: "desc" },
+          take: 3,
+          include: { category: true },
         })
       : Promise.resolve([]),
   ]);
@@ -219,6 +230,37 @@ export default async function HomePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recentProjects.map((p) => (
                 <ProjectCard key={p.id} project={p as any} accent={accent} />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Blog */}
+      {showBlog && recentPosts.length > 0 && (
+        <section className="py-16 px-4 sm:px-6">
+          <div className="max-w-6xl mx-auto">
+            <SectionHeading title="From the Blog" href="/blog" accent={accent} />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {recentPosts.map((post) => (
+                <Link key={post.id} href={`/blog/${post.slug}`} className="group block bg-white rounded-2xl border border-gray-200 overflow-hidden hover:shadow-lg transition-all duration-200">
+                  {post.heroImage ? (
+                    <div className="aspect-video overflow-hidden bg-gray-100">
+                      <img src={post.heroImage} alt={post.heroImageAlt ?? post.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    </div>
+                  ) : (
+                    <div className="aspect-video flex items-center justify-center text-3xl opacity-20" style={{ background: `linear-gradient(135deg, ${accent}10, ${accent}25)` }} aria-hidden="true">✍</div>
+                  )}
+                  <div className="p-5">
+                    {post.category && (
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full mb-2 inline-block" style={{ backgroundColor: `${post.category.color ?? accent}18`, color: post.category.color ?? accent }}>
+                        {post.category.name}
+                      </span>
+                    )}
+                    <h3 className="font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors line-clamp-2 mb-1">{post.title}</h3>
+                    {post.publishedAt && <p className="text-xs text-gray-400">{new Date(post.publishedAt).toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</p>}
+                  </div>
+                </Link>
               ))}
             </div>
           </div>

@@ -2,26 +2,40 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { slugify } from "@/lib/utils";
-import RichTextEditor from "@/components/admin/RichTextEditor";
-import MediaPickerModal from "@/components/admin/MediaPickerModal";
+import RichTextEditor from "./RichTextEditor";
+import MediaPickerModal from "./MediaPickerModal";
 
-interface PageData {
+interface PostData {
   id?: string;
   title: string;
   slug: string;
+  excerpt: string;
   content: string;
   status: string;
-  inNav: boolean;
-  navOrder: number;
+  featured: boolean;
+  authorName: string;
+  heroImage: string;
+  heroImageAlt: string;
+  categoryId: string;
+  tags: string;
   seoTitle: string;
   seoDesc: string;
   ogImage: string;
-  heroImage: string;
-  heroImageAlt: string;
   scheduledAt: string;
 }
 
-export default function PageEditor({ initialData }: { initialData?: Partial<PageData> & { id?: string } }) {
+interface BlogCategory {
+  id: string;
+  name: string;
+}
+
+export default function BlogPostEditor({
+  initialData,
+  categories,
+}: {
+  initialData?: Partial<PostData> & { id?: string };
+  categories: BlogCategory[];
+}) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState("");
@@ -30,22 +44,25 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
   const [uploading, setUploading] = useState(false);
   const uploadRef = useRef<HTMLInputElement>(null);
 
-  const [form, setForm] = useState<PageData>({
+  const [form, setForm] = useState<PostData>({
     title: initialData?.title ?? "",
     slug: initialData?.slug ?? "",
+    excerpt: initialData?.excerpt ?? "",
     content: initialData?.content ?? "",
     status: initialData?.status ?? "draft",
-    inNav: initialData?.inNav ?? false,
-    navOrder: initialData?.navOrder ?? 0,
+    featured: initialData?.featured ?? false,
+    authorName: initialData?.authorName ?? "",
+    heroImage: initialData?.heroImage ?? "",
+    heroImageAlt: initialData?.heroImageAlt ?? "",
+    categoryId: initialData?.categoryId ?? "",
+    tags: initialData?.tags ?? "",
     seoTitle: initialData?.seoTitle ?? "",
     seoDesc: initialData?.seoDesc ?? "",
     ogImage: initialData?.ogImage ?? "",
-    heroImage: initialData?.heroImage ?? "",
-    heroImageAlt: initialData?.heroImageAlt ?? "",
     scheduledAt: initialData?.scheduledAt ?? "",
   });
 
-  const set = <K extends keyof PageData>(key: K, value: PageData[K]) =>
+  const set = <K extends keyof PostData>(key: K, value: PostData[K]) =>
     setForm((f) => ({ ...f, [key]: value }));
 
   async function uploadHero(file: File) {
@@ -65,10 +82,13 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
   async function save(publishNow = false) {
     setSaving(true);
     setSaveMsg("");
-    const payload = { ...form };
-    if (publishNow) payload.status = "published";
+    const payload = {
+      ...form,
+      tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
+      ...(publishNow ? { status: "published" } : {}),
+    };
 
-    const url = initialData?.id ? `/api/pages/${initialData.id}` : "/api/pages";
+    const url = initialData?.id ? `/api/blog/posts/${initialData.id}` : "/api/blog/posts";
     const method = initialData?.id ? "PUT" : "POST";
 
     try {
@@ -80,7 +100,7 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
       if (!res.ok) throw new Error(await res.text());
       const data = await res.json();
       setSaveMsg("Saved!");
-      if (!initialData?.id) router.push(`/admin/pages/${data.id}`);
+      if (!initialData?.id) router.push(`/admin/blog/${data.id}`);
     } catch (e: any) {
       setSaveMsg("Error: " + e.message);
     } finally {
@@ -88,24 +108,27 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
     }
   }
 
-  async function deletePage() {
+  async function deletePost() {
     if (!initialData?.id) return;
-    if (!confirm("Delete this page?")) return;
-    await fetch(`/api/pages/${initialData.id}`, { method: "DELETE" });
-    router.push("/admin/pages");
+    if (!confirm("Delete this post?")) return;
+    await fetch(`/api/blog/posts/${initialData.id}`, { method: "DELETE" });
+    router.push("/admin/blog");
   }
 
   const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-300";
   const labelCls = "block text-sm font-medium text-gray-700 mb-1";
 
   return (
-    <div className="max-w-4xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-5xl">
+      <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">{initialData?.id ? "Edit Page" : "New Page"}</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{initialData?.id ? "Edit Post" : "New Post"}</h1>
           {saveMsg && <p className={`text-sm mt-1 ${saveMsg.startsWith("Error") ? "text-red-600" : "text-green-600"}`}>{saveMsg}</p>}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
+          {initialData?.id && form.status === "published" && (
+            <a href={`/blog/${form.slug}`} target="_blank" className="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">View Live ↗</a>
+          )}
           <button onClick={() => save(false)} disabled={saving} className="px-4 py-2 text-sm border border-indigo-300 text-indigo-600 rounded-lg hover:bg-indigo-50 disabled:opacity-50">
             Save Draft
           </button>
@@ -131,12 +154,16 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
                 value={form.title}
                 onChange={(e) => { set("title", e.target.value); if (!initialData?.id) set("slug", slugify(e.target.value)); }}
                 className={inputCls + " text-lg font-medium"}
-                placeholder="Page title"
+                placeholder="Post title"
               />
             </div>
-            <div>
+            <div className="mb-4">
               <label className={labelCls}>Slug</label>
               <input type="text" value={form.slug} onChange={(e) => set("slug", e.target.value)} className={inputCls + " font-mono text-xs"} />
+            </div>
+            <div>
+              <label className={labelCls}>Excerpt</label>
+              <textarea value={form.excerpt} onChange={(e) => set("excerpt", e.target.value)} rows={2} className={inputCls} placeholder="A short summary shown in listings and feeds." />
             </div>
           </div>
 
@@ -151,76 +178,41 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
             </div>
             <div className="p-5">
               {activeTab === "content" && (
-                <div>
-                  <RichTextEditor
-                    value={form.content}
-                    onChange={(v) => set("content", v)}
-                    placeholder="Start writing your page content…"
-                  />
-                </div>
+                <RichTextEditor
+                  value={form.content}
+                  onChange={(v) => set("content", v)}
+                  placeholder="Write your post…"
+                />
               )}
 
               {activeTab === "media" && (
                 <div className="space-y-4">
-                  <p className="text-sm text-gray-500">An optional banner image shown at the top of the page.</p>
-
-                  {/* Image preview */}
+                  <p className="text-sm text-gray-500">Hero image shown at the top of the post and in social previews.</p>
                   {form.heroImage && (
                     <div className="relative rounded-lg overflow-hidden border border-gray-200 aspect-[3/1] bg-gray-100">
-                      <img src={form.heroImage} alt={form.heroImageAlt || "Hero image"} className="w-full h-full object-cover" />
+                      <img src={form.heroImage} alt={form.heroImageAlt || "Hero"} className="w-full h-full object-cover" />
                       <button
                         onClick={() => setForm((f) => ({ ...f, heroImage: "", heroImageAlt: "" }))}
                         className="absolute top-2 right-2 bg-black/60 text-white rounded-full w-7 h-7 flex items-center justify-center hover:bg-black/80 text-sm"
-                        aria-label="Remove hero image"
-                      >
-                        ✕
-                      </button>
+                      >✕</button>
                     </div>
                   )}
-
-                  {/* Upload / Browse / URL */}
                   <div className="flex gap-2 flex-wrap">
-                    <input
-                      ref={uploadRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHero(f); e.target.value = ""; }}
-                    />
-                    <button
-                      onClick={() => uploadRef.current?.click()}
-                      disabled={uploading}
-                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50"
-                    >
+                    <input ref={uploadRef} type="file" accept="image/*" className="hidden"
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadHero(f); e.target.value = ""; }} />
+                    <button onClick={() => uploadRef.current?.click()} disabled={uploading}
+                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">
                       {uploading ? "Uploading…" : "Upload Image"}
                     </button>
-                    <button
-                      onClick={() => setMediaPicker(true)}
-                      className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
-                    >
-                      Browse Library
-                    </button>
+                    <button onClick={() => setMediaPicker(true)} className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg hover:bg-gray-50">Browse Library</button>
                   </div>
-
                   <div>
                     <label className={labelCls}>Image URL</label>
-                    <input
-                      type="url"
-                      value={form.heroImage}
-                      onChange={(e) => set("heroImage", e.target.value)}
-                      className={inputCls}
-                      placeholder="https://..."
-                    />
+                    <input type="url" value={form.heroImage} onChange={(e) => set("heroImage", e.target.value)} className={inputCls} />
                   </div>
                   <div>
-                    <label className={labelCls}>Alt Text <span className="text-red-500">*</span> <span className="text-xs text-gray-400 font-normal">(required for accessibility)</span></label>
-                    <input
-                      type="text"
-                      value={form.heroImageAlt}
-                      onChange={(e) => set("heroImageAlt", e.target.value)}
-                      className={inputCls}
-                      placeholder="Describe the image for screen readers"
-                    />
+                    <label className={labelCls}>Alt Text <span className="text-red-500">*</span></label>
+                    <input type="text" value={form.heroImageAlt} onChange={(e) => set("heroImageAlt", e.target.value)} className={inputCls} placeholder="Describe the image" />
                   </div>
                 </div>
               )}
@@ -245,36 +237,50 @@ export default function PageEditor({ initialData }: { initialData?: Partial<Page
           </div>
         </div>
 
+        {/* Sidebar */}
         <div className="space-y-4">
-          <div className="bg-white rounded-xl border border-gray-200 p-4">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Status</h3>
-            <div className="space-y-3">
-              <select value={form.status} onChange={(e) => set("status", e.target.value)} className={inputCls}>
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
-                <option value="archived">Archived</option>
-                <option value="scheduled">Scheduled</option>
+          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700">Status</h3>
+            <select value={form.status} onChange={(e) => set("status", e.target.value)} className={inputCls}>
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+              <option value="scheduled">Scheduled</option>
+            </select>
+            {form.status === "scheduled" && (
+              <input type="datetime-local" value={form.scheduledAt} onChange={(e) => set("scheduledAt", e.target.value)} className={inputCls} />
+            )}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input type="checkbox" checked={form.featured} onChange={(e) => set("featured", e.target.checked)} className="rounded" />
+              <span className="text-sm text-gray-700">Featured post</span>
+            </label>
+          </div>
+
+          <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3">
+            <h3 className="text-sm font-semibold text-gray-700">Author & Category</h3>
+            <div>
+              <label className={labelCls}>Author Name</label>
+              <input type="text" value={form.authorName} onChange={(e) => set("authorName", e.target.value)} className={inputCls} placeholder="Your name" />
+            </div>
+            <div>
+              <label className={labelCls}>Category</label>
+              <select value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)} className={inputCls}>
+                <option value="">— None —</option>
+                {categories.map((cat) => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
               </select>
-              {form.status === "scheduled" && (
-                <input type="datetime-local" value={form.scheduledAt} onChange={(e) => set("scheduledAt", e.target.value)} className={inputCls} />
-              )}
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input type="checkbox" checked={form.inNav} onChange={(e) => set("inNav", e.target.checked)} className="rounded" />
-                <span className="text-sm text-gray-700">Show in navigation</span>
-              </label>
-              {form.inNav && (
-                <div>
-                  <label className="text-xs text-gray-500 block mb-1">Nav order</label>
-                  <input type="number" value={form.navOrder} onChange={(e) => set("navOrder", +e.target.value)} className={inputCls} />
-                </div>
-              )}
+            </div>
+            <div>
+              <label className={labelCls}>Tags <span className="text-xs text-gray-400 font-normal">(comma-separated)</span></label>
+              <input type="text" value={form.tags} onChange={(e) => set("tags", e.target.value)} className={inputCls} placeholder="react, tutorial, tips" />
             </div>
           </div>
 
           {initialData?.id && (
             <div className="bg-white rounded-xl border border-red-200 p-4">
               <h3 className="text-sm font-semibold text-red-700 mb-3">Danger Zone</h3>
-              <button onClick={deletePage} className="w-full px-3 py-2 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50">Delete Page</button>
+              <button onClick={deletePost} className="w-full px-3 py-2 text-sm text-red-600 border border-red-300 rounded-lg hover:bg-red-50">Delete Post</button>
             </div>
           )}
         </div>

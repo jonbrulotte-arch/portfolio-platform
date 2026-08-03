@@ -58,6 +58,7 @@ const SECTIONS = [
       { key: "homeShowCategories", label: "Show Categories Bar",    type: "toggle" },
       { key: "homeShowFeatured",   label: "Show Featured Projects", type: "toggle" },
       { key: "homeShowRecent",     label: "Show Recent Projects",   type: "toggle" },
+      { key: "homeShowBlog",       label: "Show Recent Blog Posts", type: "toggle" },
     ],
   },
 ];

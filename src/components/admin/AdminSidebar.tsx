@@ -7,6 +7,8 @@ import { useState } from "react";
 const nav = [
   { label: "Dashboard", href: "/admin", icon: "⊞" },
   { label: "Projects", href: "/admin/projects", icon: "◈" },
+  { label: "Blog", href: "/admin/blog", icon: "✍" },
+  { label: "Blog Categories", href: "/admin/blog-categories", icon: "⊹" },
   { label: "Pages", href: "/admin/pages", icon: "☰" },
   { label: "Categories", href: "/admin/categories", icon: "⊹" },
   { label: "Tags", href: "/admin/tags", icon: "#" },
